@@ -31,11 +31,11 @@ func runContainer(
 	t.Logf("Creating and starting a container from %s...", image)
 	cnt := &dockerContainer{
 		client: dockerClient(t),
-		image: image,
-		t: t,
-		cmd: cmd,
-		env: env,
-		ports: ports,
+		image:  image,
+		t:      t,
+		cmd:    cmd,
+		env:    env,
+		ports:  ports,
 	}
 
 	cnt.pull()
@@ -51,8 +51,8 @@ type container interface {
 }
 
 type dockerContainer struct {
-	t           *testing.T
-	client      *client.Client
+	t      *testing.T
+	client *client.Client
 
 	containerID string
 	image       string
@@ -62,7 +62,6 @@ type dockerContainer struct {
 }
 
 type nullWriter struct {
-
 }
 
 func (n2 nullWriter) Write(p []byte) (n int, err error) {
@@ -80,21 +79,21 @@ func (d *dockerContainer) pull() {
 		d.t.Fatalf("failed to pull container image %s (%v)", d.image, err)
 	}
 	if _, err := io.Copy(&nullWriter{}, reader); err != nil {
-		d.t.Fatalf( "failed to stream logs from Minio image pull (%v)", err)
+		d.t.Fatalf("failed to stream logs from Minio image pull (%v)", err)
 	}
 }
 
 func (d *dockerContainer) create() {
 	d.t.Logf("Creating container from %s...", d.image)
 	hostConfig := &containerType.HostConfig{
-		AutoRemove: true,
+		AutoRemove:   true,
 		PortBindings: map[nat.Port][]nat.PortBinding{},
 	}
 	for containerPort, hostPort := range d.ports {
 		portString := nat.Port(fmt.Sprintf("%d/tcp", containerPort))
 		hostConfig.PortBindings[portString] = []nat.PortBinding{
 			{
-				HostIP: "127.0.0.1",
+				HostIP:   "127.0.0.1",
 				HostPort: fmt.Sprintf("%d", hostPort),
 			},
 		}

@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// S3 starts up an S3-compatible object storage using Docker for testing, and returns an object that
+// can be queried for connection parameters. When the test finishes it automatically tears down the object storage.
 func S3(t *testing.T) S3Helper {
 	accessKey := "test"
 	secretKey := "testtest"
@@ -27,7 +29,7 @@ func S3(t *testing.T) S3Helper {
 		),
 		accessKey: accessKey,
 		secretKey: secretKey,
-		t: t,
+		t:         t,
 	}
 	m.wait()
 	m.t.Log("Minio is now available at 127.0.0.1:9000.")
