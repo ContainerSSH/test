@@ -18,38 +18,38 @@ To start the S3 service and then use it with the AWS client as follows:
 package your_test
 
 import (
-	"testing"
+    "testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/containerssh/test"
+    "github.com/aws/aws-sdk-go/aws"
+    "github.com/aws/aws-sdk-go/aws/credentials"
+    "github.com/aws/aws-sdk-go/aws/session"
+    "github.com/aws/aws-sdk-go/service/s3"
+    "github.com/containerssh/test"
 )
 
 func TestYourFunc(t *testing.T) {
-	s3Service := test.S3(t)
+    s3Service := test.S3(t)
 
-	awsConfig := &aws.Config{
-		Credentials: credentials.NewCredentials(
-			&credentials.StaticProvider{
-				Value: credentials.Value{
-					AccessKeyID:     s3Service.AccessKey(),
-					SecretAccessKey: s3Service.SecretKey(),
-				},
-			},
-		),
-		Endpoint:         aws.String(s3Service.URL()),
-		Region:           aws.String(s3Service.Region()),
-		S3ForcePathStyle: aws.Bool(s3Service.PathStyle()),
-	}
-	sess, err := session.NewSession(awsConfig)
-	if err != nil {
-		t.Fatalf("failed to establish S3 session (%v)", err)
-	}
-	s3Connection := s3.New(sess)
-	
-	// ...
+    awsConfig := &aws.Config{
+        Credentials: credentials.NewCredentials(
+            &credentials.StaticProvider{
+                Value: credentials.Value{
+                    AccessKeyID:     s3Service.AccessKey(),
+                    SecretAccessKey: s3Service.SecretKey(),
+                },
+            },
+        ),
+        Endpoint:         aws.String(s3Service.URL()),
+        Region:           aws.String(s3Service.Region()),
+        S3ForcePathStyle: aws.Bool(s3Service.PathStyle()),
+    }
+    sess, err := session.NewSession(awsConfig)
+    if err != nil {
+        t.Fatalf("failed to establish S3 session (%v)", err)
+    }
+    s3Connection := s3.New(sess)
+    
+    // ...
 }
 ```
 
@@ -63,12 +63,12 @@ The Kerberos service uses DNS records published under `TESTING.CONTAINERSSH.IO`.
 package your_test
 
 import (
-	"fmt"
-	"testing"
+    "fmt"
+    "testing"
 
-	"github.com/containerssh/test"
-	"github.com/jcmturner/gokrb5/v8/client"
-	"github.com/jcmturner/gokrb5/v8/config"
+    "github.com/containerssh/test"
+    "github.com/jcmturner/gokrb5/v8/client"
+    "github.com/jcmturner/gokrb5/v8/config"
 )
 
 var krbConf = `
@@ -85,21 +85,21 @@ var krbConf = `
 `
 
 func TestKerberos(t *testing.T) {
-	krb := test.Kerberos(t)
-	
-	krbConfig, err := config.NewFromString(fmt.Sprintf(krbConf, krb.Realm()))
-	if err != nil {
-		t.Fatalf("invalid Kerberos config (%v)", err)
+    krb := test.Kerberos(t)
+    
+    krbConfig, err := config.NewFromString(fmt.Sprintf(krbConf, krb.Realm()))
+    if err != nil {
+        t.Fatalf("invalid Kerberos config (%v)", err)
     }
-	cli := client.NewWithPassword(
-		krb.AdminUsername(),
-		krb.Realm(),
-		krb.AdminPassword(),
-		krbConfig,
+    cli := client.NewWithPassword(
+        krb.AdminUsername(),
+        krb.Realm(),
+        krb.AdminPassword(),
+        krbConfig,
     )
-	if err := cli.Login(); err != nil {
-		t.Fatalf("failed to login (%v)", err)
-	}
+    if err := cli.Login(); err != nil {
+        t.Fatalf("failed to login (%v)", err)
+    }
 }
 ```
 
