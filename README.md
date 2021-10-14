@@ -54,3 +54,49 @@ func TestYourFunc(t *testing.T) {
 ```
 
 That's it! Now you have a working S3 connection for testing!
+
+## Starting the Kerberos service
+
+The Kerberos service uses DNS records published under `TESTING.CONTAINERSSH.IO`. You can start the Kerberos service and then use it to authenticate like this:
+
+```go
+package your_test
+
+import (
+	"testing"
+
+	"github.com/containerssh/test"
+	"github.com/jcmturner/gokrb5/v8/client"
+	"github.com/jcmturner/gokrb5/v8/config"
+)
+
+var krbConf = `
+[libdefaults]
+ dns_lookup_realm = true
+ dns_lookup_kdc = true
+
+[realms]
+
+[domain_realm]
+`
+
+func TestKerberos(t *testing.T) {
+	krb := test.Kerberos(t)
+	
+	krbConfig, err := config.NewFromString(krbConf)
+	if err != nil {
+		t.Fatalf("invalid Kerberos config (%v)", err)
+    }
+	cli := client.NewWithPassword(
+		krb.AdminUsername(),
+		krb.Realm(),
+		krb.AdminPassword(),
+		krbConfig,
+    )
+	if err := cli.Login(); err != nil {
+		t.Fatalf("failed to login (%v)", err)
+	}
+}
+```
+
+**⚠️ Warning!** The Kerberos server image is built locally and may take several minutes to build!
