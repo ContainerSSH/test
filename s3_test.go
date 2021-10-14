@@ -34,6 +34,12 @@ func TestS3(t *testing.T) {
 	}
 	s3Connection := s3.New(sess)
 
+	s3CreateTestBucket(t, s3Connection)
+	s3UploadTestObject(t, s3Connection)
+	s3ReadAndCheckTestObject(t, s3Connection)
+}
+
+func s3CreateTestBucket(t *testing.T, s3Connection *s3.S3) {
 	t.Log("Creating test bucket...")
 	if _, err := s3Connection.CreateBucket(
 		&s3.CreateBucketInput{
@@ -42,7 +48,9 @@ func TestS3(t *testing.T) {
 	); err != nil {
 		t.Fatalf("failed to create bucket (%v)", err)
 	}
+}
 
+func s3UploadTestObject(t *testing.T, s3Connection *s3.S3) {
 	t.Log("Creating test object...")
 	if _, err := s3Connection.PutObject(
 		&s3.PutObjectInput{
@@ -53,7 +61,9 @@ func TestS3(t *testing.T) {
 	); err != nil {
 		t.Fatalf("failed to put object (%v)", err)
 	}
+}
 
+func s3ReadAndCheckTestObject(t *testing.T, s3Connection *s3.S3) {
 	t.Log("Getting test object...")
 	getObjectResponse, err := s3Connection.GetObject(
 		&s3.GetObjectInput{

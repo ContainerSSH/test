@@ -3,13 +3,21 @@ package test
 import (
 	"fmt"
 	"net"
+	"sync"
 	"testing"
 	"time"
 )
 
+var s3Lock = &sync.Mutex{}
+
 // S3 starts up an S3-compatible object storage using Docker for testing, and returns an object that
 // can be queried for connection parameters. When the test finishes it automatically tears down the object storage.
 func S3(t *testing.T) S3Helper {
+	s3Lock.Lock()
+	t.Cleanup(func() {
+		s3Lock.Unlock()
+	})
+
 	accessKey := "test"
 	secretKey := "testtest"
 	env := []string{
@@ -18,13 +26,13 @@ func S3(t *testing.T) S3Helper {
 	}
 	t.Log("Starting Minio in a container...")
 	m := &minio{
-		cnt: runContainer(
+		cnt: containerFromPull(
 			t,
 			"docker.io/minio/minio",
 			[]string{"server", "/data"},
 			env,
-			map[int]int{
-				9000: 9000,
+			map[string]string{
+				"9000/tcp": "9000",
 			},
 		),
 		accessKey: accessKey,
@@ -52,7 +60,6 @@ type S3Helper interface {
 }
 
 type minio struct {
-	containerID string
 	cnt         container
 	accessKey   string
 	secretKey   string
@@ -82,12 +89,13 @@ func (m *minio) SecretKey() string {
 func (m *minio) wait() {
 	m.t.Log("Waiting for Minio to come up...")
 	tries := 0
+	sleepTime := 5
 	for {
 		if tries > 30 {
-			m.t.Fatalf("minio failed to come up in 30 seconds")
+			m.t.Fatalf("Minio failed to come up in %d seconds", sleepTime * 30)
 		}
 		sock, err := net.Dial("tcp", "127.0.0.1:9000")
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(sleepTime) * time.Second)
 		if err != nil {
 			tries++
 		} else {

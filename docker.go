@@ -1,10 +1,12 @@
 package test
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
-	"fmt"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	containerType "github.com/docker/docker/api/types/container"
@@ -21,12 +23,39 @@ func dockerClient(t *testing.T) *client.Client {
 	return cli
 }
 
-func runContainer(
+func containerFromBuild(
+	t *testing.T,
+	imageTag string,
+	files map[string][]byte,
+	cmd []string,
+	env []string,
+	ports map[string]string,
+) container {
+	t.Logf("Creating and starting a container from local build...")
+	cnt := &dockerContainer{
+		client: dockerClient(t),
+		files: files,
+		image:  imageTag,
+		t:      t,
+		cmd:    cmd,
+		env:    env,
+		ports:  ports,
+	}
+
+	cnt.build()
+	cnt.create()
+	t.Cleanup(cnt.remove)
+	cnt.start()
+
+	return cnt
+}
+
+func containerFromPull(
 	t *testing.T,
 	image string,
 	cmd []string,
 	env []string,
-	ports map[int]int,
+	ports map[string]string,
 ) container {
 	t.Logf("Creating and starting a container from %s...", image)
 	cnt := &dockerContainer{
@@ -58,13 +87,17 @@ type dockerContainer struct {
 	image       string
 	cmd         []string
 	env         []string
-	ports       map[int]int
+	ports       map[string]string
+	files       map[string][]byte
 }
 
-type nullWriter struct {
+type testLogWriter struct {
+	t *testing.T
 }
 
-func (n2 nullWriter) Write(p []byte) (n int, err error) {
+func (n2 testLogWriter) Write(p []byte) (n int, err error) {
+	n2.t.Logf("%s", p)
+
 	return len(p), nil
 }
 
@@ -78,8 +111,8 @@ func (d *dockerContainer) pull() {
 	if err != nil {
 		d.t.Fatalf("failed to pull container image %s (%v)", d.image, err)
 	}
-	if _, err := io.Copy(&nullWriter{}, reader); err != nil {
-		d.t.Fatalf("failed to stream logs from Minio image pull (%v)", err)
+	if _, err := io.Copy(&testLogWriter{t: d.t}, reader); err != nil {
+		d.t.Fatalf("failed to stream logs from image pull (%v)", err)
 	}
 }
 
@@ -90,11 +123,11 @@ func (d *dockerContainer) create() {
 		PortBindings: map[nat.Port][]nat.PortBinding{},
 	}
 	for containerPort, hostPort := range d.ports {
-		portString := nat.Port(fmt.Sprintf("%d/tcp", containerPort))
+		portString := nat.Port(containerPort)
 		hostConfig.PortBindings[portString] = []nat.PortBinding{
 			{
 				HostIP:   "127.0.0.1",
-				HostPort: fmt.Sprintf("%d", hostPort),
+				HostPort: hostPort,
 			},
 		}
 	}
@@ -132,5 +165,67 @@ func (d *dockerContainer) remove() {
 		Force:         true,
 	}); err != nil {
 		d.t.Fatalf("failed to remove container %s (%v)", d.containerID, err)
+	}
+}
+
+func (d *dockerContainer) build() {
+	d.t.Logf("Building local image...")
+
+	buildContext, buildContextWriter := io.Pipe()
+
+	go func() {
+		d.t.Logf("Compiling build context...")
+		defer func() {
+			d.t.Logf("Build context compiled.")
+			_ = buildContextWriter.Close()
+		}()
+
+		gzipWriter := gzip.NewWriter(buildContextWriter)
+		defer func() {
+			_ = gzipWriter.Close()
+		}()
+
+		tarWriter := tar.NewWriter(gzipWriter)
+		defer func() {
+			_ = tarWriter.Close()
+		}()
+
+		for filePath, fileContent := range d.files {
+			header := &tar.Header{
+				Name:    filePath,
+				Size: int64(len(fileContent)),
+				Mode:    0755,
+				ModTime: time.Now(),
+			}
+
+			if err := tarWriter.WriteHeader(header); err != nil {
+				d.t.Logf("Failed to write build context file %s header (%v)", filePath, err)
+				return
+			}
+
+			if _, err := tarWriter.Write(fileContent); err != nil {
+				d.t.Logf("Failed to write build context file %s (%v)", filePath, err)
+			}
+		}
+	}()
+
+	imageBuildResponse, err := d.client.ImageBuild(
+		context.Background(),
+		buildContext,
+		types.ImageBuildOptions{
+			Tags:           []string{d.image},
+			Dockerfile: "Dockerfile",
+		},
+	)
+	if err != nil {
+		d.t.Fatalf("Failed to build local image (%v)", err)
+	}
+
+	d.t.Logf("Reading build log...")
+	if _, err := io.Copy(&testLogWriter{t:d.t}, imageBuildResponse.Body); err != nil {
+		d.t.Fatalf("Failed to read image build log (%v)", err)
+	}
+	if err := imageBuildResponse.Body.Close(); err != nil {
+		d.t.Fatalf("Failed to close image build log (%v)", err)
 	}
 }
