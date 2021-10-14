@@ -36,7 +36,7 @@ func TestS3(t *testing.T) {
 
 	s3CreateTestBucket(t, s3Connection)
 	s3UploadTestObject(t, s3Connection)
-	s3ReadAndCheckTestObject(t, err, s3Connection)
+	s3ReadAndCheckTestObject(t, s3Connection)
 }
 
 func s3CreateTestBucket(t *testing.T, s3Connection *s3.S3) {
@@ -63,7 +63,7 @@ func s3UploadTestObject(t *testing.T, s3Connection *s3.S3) {
 	}
 }
 
-func s3ReadAndCheckTestObject(t *testing.T, err error, s3Connection *s3.S3) {
+func s3ReadAndCheckTestObject(t *testing.T, s3Connection *s3.S3) {
 	t.Log("Getting test object...")
 	getObjectResponse, err := s3Connection.GetObject(
 		&s3.GetObjectInput{
