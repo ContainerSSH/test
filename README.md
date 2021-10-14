@@ -57,7 +57,7 @@ That's it! Now you have a working S3 connection for testing!
 
 ## Starting the Kerberos service
 
-The Kerberos service uses DNS records published under `TESTING.CONTAINERSSH.IO`. You can start the Kerberos service and then use it to authenticate like this:
+You can start the Kerberos service and then use it to authenticate like this:
 
 ```go
 package your_test
@@ -104,3 +104,12 @@ func TestKerberos(t *testing.T) {
 ```
 
 **⚠️ Warning!** The Kerberos server image is built locally and may take several minutes to build!
+
+**👉 Tip:** The Kerberos service works locally without DNS lookups, but can also use the test DNS records published under `TESTING.CONTAINERSSH.IO`. It is recommended that test cases work without DNS lookups.
+
+**👉 Tip:** You can use the contents of the [krb](krb) directory to build and start a Kerberos service for testing purposes like this:
+
+```bash
+docker build -t krb .
+docker run --rm -p 127.0.0.1:88:88 -p 127.0.0.1:88:88/udp -e KERBEROS_USERNAME=admin -e KERBEROS_PASSWORD=testing -ti krb
+```
