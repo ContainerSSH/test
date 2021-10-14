@@ -111,5 +111,12 @@ func TestKerberos(t *testing.T) {
 
 ```bash
 docker build -t krb .
-docker run --rm -p 127.0.0.1:88:88 -p 127.0.0.1:88:88/udp -e KERBEROS_USERNAME=admin -e KERBEROS_PASSWORD=testing -ti krb
+docker run \
+       --rm \
+      -p 127.0.0.1:88:88 \
+      -p 127.0.0.1:88:88/udp \
+      -e KERBEROS_USERNAME=admin \
+      -e KERBEROS_PASSWORD=testing \
+      -ti \
+      krb
 ```
