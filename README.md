@@ -63,6 +63,7 @@ The Kerberos service uses DNS records published under `TESTING.CONTAINERSSH.IO`.
 package your_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/containerssh/test"
@@ -72,10 +73,13 @@ import (
 
 var krbConf = `
 [libdefaults]
- dns_lookup_realm = true
- dns_lookup_kdc = true
+ dns_lookup_realm = false
+ dns_lookup_kdc = false
 
 [realms]
+ %s = {
+  kdc = 127.0.0.1:88
+ }
 
 [domain_realm]
 `
@@ -83,7 +87,7 @@ var krbConf = `
 func TestKerberos(t *testing.T) {
 	krb := test.Kerberos(t)
 	
-	krbConfig, err := config.NewFromString(krbConf)
+	krbConfig, err := config.NewFromString(fmt.Sprintf(krbConf, krb.Realm()))
 	if err != nil {
 		t.Fatalf("invalid Kerberos config (%v)", err)
     }
