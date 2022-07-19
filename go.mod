@@ -3,7 +3,7 @@ module github.com/containerssh/test
 go 1.16
 
 require (
-	github.com/aws/aws-sdk-go v1.41.2
+	github.com/aws/aws-sdk-go v1.44.58
 	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/docker/docker v20.10.9+incompatible
 	github.com/docker/go-connections v0.4.0
